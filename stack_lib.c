@@ -126,9 +126,8 @@ void print_stack(Stack* stack) {
  * @return The value of the removed top element
  */
 int pop(Stack *stack) {
-    if (stack->top == -1) {
+    if (isEmpty(stack)) {
         printf("Stack is empty!\n");
-        exit(1);
     }
     int item = stack->items[stack->top];
     stack->top--;
@@ -151,5 +150,14 @@ int pop(Stack *stack) {
  * @return The value at the top of the stack (does not check if stack is empty)
  */
 int peek(Stack* stack) {
+    if(isEmpty(stack)) {
+        printf("The stack is empty!");
+    }
     return stack->items[stack->top];
+}
+
+int main(void) {
+    Stack* stack = create_stack();
+    pop(stack);
+    return 0;
 }
