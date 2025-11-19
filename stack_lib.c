@@ -4,485 +4,221 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-/**
- * Stack structure
+/*
+ * Enumeration
  *
- * @field top: Index of the top element in the stack (-1 if empty)
- * @field capacity: Current maximum number of elements the stack can hold
- * @field items: Dynamically allocated array containing stack elements
+ * @field INT_STACK: Represents an integer stack
+ * @field CHAR_STACK: Represents a stack of char pointers (strings)
  */
-typedef struct {
-  int top;
-  int capacity;
-  int *items;
-} IntStack;
-
-typedef struct {
-  int top;
-  int capacity;
-  char **items;
-} CharStack;
 
 typedef enum{
     INT_STACK,
-    CHAR_STACK
-} Stack;
+    CHAR_STACK,
+} StackType;
 
 
 /**
- * Creates and initializes a new integer stack
+ * Stack structure
  *
- * Allocates memory for the stack structure and its internal array.
- * The stack starts with a capacity of 1 and no elements (top = -1).
- *
- * @return Pointer to the newly created stack, or NULL if allocation fails
+ * @field type: The type of the stack (from enum StackType)
+ * @field top: Index of the top element (-1 means empty)
+ * @field capacity: Current maximum capacity of the stack
+ * @field items: Dynamically allocated array storing the stack's elements
  */
-IntStack *create_int_stack() {
-  IntStack *int_stack = malloc(sizeof(IntStack));
 
-  // Returns NULL if memory allocation fails
-  if (!int_stack) {
-    return NULL;
-  }
+ typedef struct {
+    StackType type;
+    int top;
+    int capacity;
+    void *items;
+} GenericStack;
 
-  int_stack->top = -1;
-  int_stack->capacity = 1;
-  int_stack->items = (int*)malloc(int_stack->capacity * sizeof(int));
+/*
+ * create_stack
+ *
+ * Allocates and initializes a new stack with an initial capacity of 1.
+ * Allocates the correct type of array depending on the stack type.
+ *
+ * Returns a pointer to the created stack, or NULL on allocation failure.
+ */
+GenericStack* create_stack(StackType type) {
+     GenericStack* stack = malloc(sizeof(GenericStack));
+     if(!stack) return NULL;
 
-  // Returns NULL if memory allocation fails
-  if (!int_stack->items) {
-    free(int_stack);
-    return NULL;
-  }
+     stack->type = type;
+     stack->capacity = 1;
+     stack->top = -1;
 
-  return int_stack;
+     if(type == INT_STACK) {
+         stack->items = (int*)malloc(stack->capacity * sizeof(int));
+         if(!stack->items) return NULL;
+     }
+     if(type == CHAR_STACK) {
+         stack->items = (char**)malloc(stack->capacity * sizeof(char*));
+         if(!stack->items) return NULL;
+     }
+     return stack;
 }
 
-/**
- * Creates and initializes a new char stack
+/*
+ * isFull
  *
- * Allocates memory for the stack structure and its internal array.
- * The stack starts with a capacity of 1 and no elements (top = -1).
- *
- * @return Pointer to the newly created stack, or NULL if allocation fails
+ * Returns true if the stack has reached its capacity.
  */
-CharStack *create_char_stack() {
-    CharStack *char_stack = malloc(sizeof(CharStack));
-
-    //Returns NULL if memalloc fails.
-    if(!char_stack) {
-        return NULL;
-    }
-
-    char_stack->top = -1;
-    char_stack->capacity = 1;
-    char_stack->items = (char**)malloc(char_stack->capacity * sizeof(char*));
-
-    // Returns NULL if the memalloc fails.
-    if(!char_stack->items) {
-        free(char_stack);
-        return NULL;
-    }
-
-    return char_stack;
+bool isFull(GenericStack* stack) {
+    return stack->top == stack->capacity - 1;
 }
 
-/**
- * Destroys the stack and frees all allocated memory
+/*
+ * isEmpty
  *
- * Frees both the internal items array and the stack structure itself.
- *
- * @param stack: Pointer to the stack to be destroyed
+ * Returns true if the stack contains no elements.
  */
-void destroy_int_stack(IntStack *stack) {
-  free(stack->items);
-  free(stack);
-}
-
-/**
- * Destroys the char stack and frees all allocated memory
- *
- * Frees both the internal items array and the stack structure itself.
- *
- * @param stack: Pointer to the stack to be destroyed
- */
-void destroy_char_stack(CharStack *stack) {
-  free(stack->items);
-  free(stack);
-}
-
-/**
- * Checks if the integer stack is full
- *
- * @param stack: Pointer to the stack
- * @return true if the stack is at maximum capacity, false otherwise
- */
-bool isIntFull(IntStack *stack) {
-  return stack->top == stack->capacity - 1;
-}
-
-/**
- * Checks if the char stack is full
- *
- * @param stack: Pointer to the stack
- * @return true if the stack is at maximum capacity, false otherwise
- */
-bool isCharFull(CharStack *stack) {
-  return stack->top == stack->capacity - 1;
-}
-
-/**
- * Checks if the integer stack is empty
- *
- * @param stack: Pointer to the stack
- * @return true if the stack contains no elements, false otherwise
- */
-bool isIntEmpty(IntStack* stack) {
+bool isEmpty(GenericStack* stack) {
     return stack->top == -1;
 }
 
-/**
- * Checks if the char stack is empty
+/*
+ * push
  *
- * @param stack: Pointer to the stack
- * @return true if the stack contains no elements, false otherwise
+ * Pushes a new element into the stack.
+ * If the stack is full, increases the capacity by 1 (realloc).
+ *
+ * @param item: Passed as void*, internally cast to the correct type.
+ *
+ * Returns the stack pointer (or NULL on reallocation failure).
  */
-bool isCharEmpty(CharStack* stack) {
-    return stack->top == -1;
-}
-
-/**
- * Pushes an item onto the integer stack
- *
- * If the stack is full, it automatically increases its capacity by 1.
- * The new item is placed at the top of the stack.
- *
- * @param stack: Pointer to the stack
- * @param item: Integer value to be pushed onto the stack
- * @return Pointer to the stack, or NULL if reallocation fails
- */
-IntStack *push_to_int(IntStack *stack, int item) {
-  if (isIntFull(stack)) {
-      int new_capacity = stack->capacity + 1;
-      int *temp = realloc(stack->items, new_capacity * sizeof(int));
-      if (!temp) {
-          printf("Memory reallocation failed!\n");
-          return NULL;
-      }
-      stack->items = temp;
-      stack->capacity = new_capacity;
-  }
-  stack->top++;
-  stack->items[stack->top] = item;
-  return stack;
-}
-
-/**
- * Pushes an item onto the char stack
- *
- * If the stack is full, it automatically increases its capacity by 1.
- * The new item is placed at the top of the stack.
- *
- * @param stack: Pointer to the stack
- * @param item: Char pointer value to be pushed onto the stack
- * @return Pointer to the stack, or NULL if reallocation fails
- */
-CharStack *push_to_char(CharStack *stack, char *item) {
-  if (isCharFull(stack)) {
-      int new_capacity = stack->capacity + 1;
-      char **temp = realloc(stack->items, new_capacity * sizeof(char*));
-      if (!temp) {
-          printf("Memory reallocation failed!\n");
-          return NULL;
-      }
-      stack->items = temp;
-      stack->capacity = new_capacity;
-  }
-  stack->top++;
-  stack->items[stack->top] = item;
-  return stack;
-}
-
-/**
- * Prints the contents of the int stack
- *
- * Displays the current capacity and all elements in the stack
- * from bottom (index 0) to top (index stack->top).
- *
- * @param stack: Pointer to the stack to be printed
- */
-void print_int_stack(IntStack* stack) {
-    printf("The stack size is : %d\n", stack->capacity);
-    for(int i = 0; i <= stack->top; i++){
-        printf("Stack item number (%d) : %d\n", i, stack->items[i]);
-    }
-}
-
-/**
- * Prints the contents of the char stack
- *
- * Displays the current capacity and all elements in the stack
- * from bottom (index 0) to top (index stack->top).
- *
- * @param stack: Pointer to the stack to be printed
- */
-void print_char_stack(CharStack* stack) {
-    printf("The stack size is : %d\n", stack->capacity);
-    for(int i = 0; i <= stack->top; i++){
-        printf("Stack item number (%d) : %s\n", i, stack->items[i]);
-    }
-}
-
-/**
- * Removes and returns the top element from the stack
- *
- * If the stack becomes too sparse (uses only 1/4 of its capacity),
- * the capacity is reduced by half to save memory.
- * Terminates the program if the stack is empty.
- *
- * @param stack: Pointer to the stack
- * @return The value of the removed top element
- */
-int pop_int(IntStack *stack) {
-    if (isIntEmpty(stack)) {
-        printf("Stack is empty!\n");
-        exit(1);
-    }
-    int item = stack->items[stack->top];
-    stack->top--;
-    // Shrink capacity if stack is using less than 1/4 of allocated space
-    if (stack->top + 1 <= stack->capacity / 4 && stack->capacity > 1) {
-        int new_capacity = stack->capacity / 2;
-        int *temp = realloc(stack->items, new_capacity * sizeof(int));
-        if (temp) {
+GenericStack* push(GenericStack* stack, void* item) {
+    if(stack->type == INT_STACK) {
+        int* int_items = (int*) stack->items;
+        int int_item = (int)(intptr_t) item;
+        if(isFull(stack)){
+            int new_capacity = stack->capacity + 1;
+            int *temp = realloc(stack->items, new_capacity * sizeof(int));
+            if (!temp) {
+                printf("Memory reallocation failed!\n");
+                return NULL;
+            }
             stack->items = temp;
             stack->capacity = new_capacity;
         }
+        stack->top++;
+        int_items[stack->top] = int_item;
     }
-    return item;
-}
 
-/**
- * Removes and returns the top element from the stack
- *
- * If the stack becomes too sparse (uses only 1/4 of its capacity),
- * the capacity is reduced by half to save memory.
- * Terminates the program if the stack is empty.
- *
- * @param stack: Pointer to the stack
- * @return The value of the removed top element
- */
-char* pop_char(CharStack *stack) {
-    if (isCharEmpty(stack)) {
-        printf("Stack is empty!\n");
-        exit(1);
-    }
-    char* item = stack->items[stack->top];
-    stack->top--;
-    // Shrink capacity if stack is using less than 1/4 of allocated space
-    if (stack->top + 1 <= stack->capacity / 4 && stack->capacity > 1) {
-        int new_capacity = stack->capacity / 2;
-        char **temp = realloc(stack->items, new_capacity * sizeof(char*));
-        if (temp) {
+    if(stack->type == CHAR_STACK) {
+        char** char_items = (char**)stack->items;
+        char* char_item = (char*)item;
+        if(isFull(stack)){
+            int new_capacity = stack->capacity + 1;
+            char **temp = realloc(stack->items, new_capacity * sizeof(char*));
+            if (!temp) {
+                printf("Memory reallocation failed!\n");
+                return NULL;
+            }
             stack->items = temp;
             stack->capacity = new_capacity;
         }
+        stack->top++;
+        char_items[stack->top] = char_item;
     }
-    return item;
-}
-
-/**
- * Returns the top element without removing it
- *
- * @param stack: Pointer to the stack
- * @return The value at the top of the stack
- */
-int peek_int(IntStack* stack) {
-    if(isIntEmpty(stack)) {
-        printf("The stack is empty!\n");
-        exit(1);
-    }
-    return stack->items[stack->top];
-}
-
-/**
- * Returns the top element without removing it
- *
- * @param stack: Pointer to the stack
- * @return The value at the top of the stack
- */
-char* peek_char(CharStack* stack) {
-    if(isCharEmpty(stack)) {
-        printf("The stack is empty!\n");
-        exit(1);
-    }
-    return stack->items[stack->top];
+    return stack;
 }
 
 /*
- * Creates a generic stack of the specified type
+ * pop
  *
- * Allocates and initializes either an IntStack or CharStack based on the
- * provided type parameter.
+ * Removes the top element from the stack.
+ * Prints an error if the stack is empty.
  *
- * @param type: The type of stack to create (INT_STACK or CHAR_STACK)
- * @return Pointer to the newly created stack as void*, or terminates if invalid type
+ * Shrinks capacity by half if usage falls below 25%.
+ *
+ * Returns the stack pointer.
  */
-void* create_stack(Stack type) {
-    if(type == INT_STACK) {
-        return create_int_stack();
+GenericStack* pop(GenericStack* stack) {
+    if(isEmpty(stack)) {
+        printf("Stack is empty!\n");
     }
-    if(type == CHAR_STACK){
-        return create_char_stack();
+    if(stack->type == INT_STACK) {
+        int int_items = (int)(intptr_t)stack->items;
+        stack->top--;
+        if (stack->top + 1 <= stack->capacity / 4 && stack->capacity > 1) {
+            int new_capacity = stack->capacity / 2;
+            int *temp = realloc(stack->items, new_capacity * sizeof(int));
+            if (temp) {
+                stack->items = temp;
+                stack->capacity = new_capacity;
+            }
+        }
     }
-    exit(1);
+    if(stack->type == CHAR_STACK) {
+        char* char_items = (char*)stack->items;
+        stack->top--;
+        if (stack->top + 1 <= stack->capacity / 4 && stack->capacity > 1) {
+            int new_capacity = stack->capacity / 2;
+            char *temp = realloc(stack->items, new_capacity * sizeof(char*));
+            if (temp) {
+                stack->items = temp;
+                stack->capacity = new_capacity;
+            }
+        }
+    }
+    stack->capacity--;
+    return stack;
 }
 
 /*
- * Destroys a stack and frees all allocated memory
+ * print_stack
  *
- * Calls the appropriate destructor function based on the stack type.
- * The caller must ensure the type matches the actual stack being destroyed.
- *
- * @param type: The type of stack being destroyed (INT_STACK or CHAR_STACK)
- * @param stack: Void pointer to the stack structure to be destroyed
+ * Prints the entire stack:
+ * - Its capacity
+ * - Each stored element
  */
-void destroy_stack(Stack type, void* stack) {
+void print_stack(GenericStack* stack) {
+     StackType type = stack->type;
     if(type == INT_STACK) {
-        destroy_int_stack(stack);
-        return;
+        int* int_items = (int*)stack->items;
+        printf("The stack size is : %d\n", stack->capacity);
+        for(int i = 0; i <= stack->top; i++){
+            printf("Stack item number (%d) : %d\n", i+1, int_items[i]);
+        }
     }
     if(type == CHAR_STACK) {
-        destroy_char_stack(stack);
-        return;
+        char** char_items = (char**)stack->items;
+        printf("The stack size is : %d\n", stack->capacity);
+        for(int i = 0; i <= stack->top; i++){
+            printf("Stack item number (%d) : %s\n", i+1, char_items[i]);
+        }
     }
-    exit(1);
 }
 
 /*
- * Prints the contents of a stack
+ * destroy_stack
  *
- * Displays all elements in the stack along with capacity information.
- * The output format depends on the stack type.
- *
- * @param type: The type of stack to print (INT_STACK or CHAR_STACK)
- * @param stack: Void pointer to the stack structure to be printed
+ * Frees the allocated items array and the stack structure itself.
  */
-void print_stack(Stack type, void* stack) {
-    if(type == INT_STACK) {
-        print_int_stack(stack);
-        return;
+void destroy_stack(GenericStack* stack) {
+    free(stack->items);
+    free(stack);
+    printf("\nStack Destroyed!\n");
+}
+
+/*
+ * peek
+ *
+ * Prints the element at the top of the stack without removing it.
+ *
+ * Always returns NULL.
+ */
+void* peek (GenericStack* stack) {
+    if(stack->type == INT_STACK){
+        int* int_items = (int*)stack->items;
+        int top_item = int_items[stack->top];
+        printf("The top item is: %d\n", top_item);
     }
-    if(type == CHAR_STACK) {
-        print_char_stack(stack);
-        return;
+    if(stack->type == CHAR_STACK){
+        char** char_items = (char**)stack->items;
+        printf("The top item is: %s\n", char_items[stack->top]);
     }
-    exit(1);
-}
-
-/*
- * Checks if a stack is empty
- *
- * Determines whether the stack contains any elements by checking the
- * appropriate type-specific is(type)Empty function.
- *
- * @param type: The type of stack to check (INT_STACK or CHAR_STACK)
- * @param stack: Void pointer to the stack structure to be checked
- * @return true if the stack is empty (top == -1), false otherwise
- *         Terminates program if invalid type is provided
- */
-bool isStackEmpty(Stack type, void* stack){
-    if(type == INT_STACK) return isIntEmpty(stack);
-    if(type == CHAR_STACK) return isCharEmpty(stack);
-    exit(1);
-}
-
-/*
- * Checks if a stack is full
- *
- * Determines whether the stack has reached maximum capacity by checking the
- * appropriate type-specific is(type)Full function.
- *
- * @param type: The type of stack to check (INT_STACK or CHAR_STACK)
- * @param stack: Void pointer to the stack structure to be checked
- * @return true if the stack is full (top == capacity - 1), false otherwise
- *         Terminates program if invalid type is provided
- */
-bool isStackFull(Stack type, void* stack){
-    if(type == INT_STACK) return isIntFull(stack);
-    if(type == CHAR_STACK) return isCharFull(stack);
-    exit(1);
-}
-
-/*
- * Generic push function that delegates to type-specific implementations
- *
- * Acts as a dispatcher that routes push operations to the appropriate
- * stack type (integer or character) based on the StackType parameter.
- * The type-specific functions handle proper casting and dereferencing.
- *
- * @param type: The type of stack (INT_STACK or CHAR_STACK)
- * @param stack: Void pointer to the stack structure
- * @param item: Void pointer to the item to push (must be passed by address)
- * @return Void pointer to the updated stack after push operation
- *         Returns NULL if type-specific push fails
- *
- * Example usage:
- *   int value = 42;
- *   push(INT_STACK, my_stack, value);
- */
-void* push(Stack type, void* stack, void* item) {
-    if(type == INT_STACK) return push_to_int(stack, (int)(intptr_t)item);
-    if(type == CHAR_STACK) return push_to_char(stack, (char*)item);
-    exit(1);
-}
-
-/*
- * Generic pop function that delegates to type-specific implementations
- *
- * Acts as a dispatcher that routes pop operations to the appropriate
- * stack type (integer or character) based on the StackType parameter.
- * Removes and returns the top element from the specified stack.
- *
- * @param type: The type of stack (INT_STACK or CHAR_STACK)
- * @param stack: Void pointer to the stack structure
- * @return Void pointer to the popped value (must be cast to appropriate type)
- *         For INT_STACK: cast to (intptr_t) for integer value
- *         For CHAR_STACK: cast to (char*)
- *         Terminates program if invalid type is provided
- *
- * Example usage:
- *   int value = (int)(intptr_t)pop(INT_STACK, my_stack);
- *   printf("Popped: %d\n", value);
- *
- * Note: The caller is responsible for properly casting
- *       the returned void pointer based on the stack type
- */
-void* pop(Stack type, void* stack){
-    if(type == INT_STACK) return (void*)(intptr_t)pop_int(stack);
-    if(type == CHAR_STACK) return pop_char(stack);
-    exit(1);
-}
-
-/*
- * Generic peek function that delegates to type-specific implementations
- *
- * Acts as a dispatcher that routes peek operations to the appropriate
- * stack type based on the StackType parameter. Returns the top element
- * without removing it from the stack.
- *
- * @param type: The type of stack (INT_STACK or CHAR_STACK)
- * @param stack: Void pointer to the stack structure
- * @return Void pointer to the top element value (must be cast to appropriate type)
- *         For INT_STACK: cast to (intptr_t) for integer value
- *         For CHAR_STACK: cast to (char*)
- *
- * Example usage:
- *   int value = (int)(intptr_t)peek(INT_STACK, my_stack);
- *   printf("Top: %d\n", value);
- */
-void* peek(Stack type, void* stack){
-    if(type == INT_STACK) return (void*)(intptr_t)peek_int(stack);
-    if(type == CHAR_STACK) return peek_char(stack);
-    exit(1);
+    return NULL;
 }
